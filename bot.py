@@ -12,6 +12,7 @@ import aiohttp
 import asyncio
 import os
 import time
+import json
 from datetime import datetime, timezone
 import math
 from aiohttp import web
@@ -91,8 +92,14 @@ async def fetch_klines(session, symbol, interval, limit=150):
     params = {"category": "linear", "symbol": symbol, "interval": interval, "limit": limit}
     try:
         async with session.get(BYBIT_BASE + KLINE_EP, params=params,
-                               timeout=aiohttp.ClientTimeout(total=10)) as r:
-            data = await r.json()
+                               timeout=aiohttp.ClientTimeout(total=10),
+                               headers={"Accept": "application/json"}) as r:
+            text = await r.text()
+            try:
+                data = json.loads(text)
+            except Exception:
+                print(f"  ⚠️ fetch_klines [{symbol}] non-JSON response: {text[:100]}")
+                return []
             if data.get("retCode") != 0:
                 print(f"  ⚠️ fetch_klines [{symbol}] retCode={data.get('retCode')} msg={data.get('retMsg')}")
                 return []
@@ -108,8 +115,14 @@ async def fetch_ticker(session, symbol):
     params = {"category": "linear", "symbol": symbol}
     try:
         async with session.get(BYBIT_BASE + TICKER_EP, params=params,
-                               timeout=aiohttp.ClientTimeout(total=8)) as r:
-            data = await r.json()
+                               timeout=aiohttp.ClientTimeout(total=8),
+                               headers={"Accept": "application/json"}) as r:
+            text = await r.text()
+            try:
+                data = json.loads(text)
+            except Exception:
+                print(f"  ⚠️ fetch_ticker [{symbol}] non-JSON response: {text[:100]}")
+                return None
             if data.get("retCode") != 0:
                 print(f"  ⚠️ fetch_ticker [{symbol}] retCode={data.get('retCode')} msg={data.get('retMsg')}")
                 return None
@@ -135,8 +148,14 @@ async def fetch_ticker(session, symbol):
 async def fetch_all_tickers(session):
     try:
         async with session.get(BYBIT_BASE + TICKER_EP, params={"category": "linear"},
-                               timeout=aiohttp.ClientTimeout(total=15)) as r:
-            data = await r.json()
+                               timeout=aiohttp.ClientTimeout(total=15),
+                               headers={"Accept": "application/json"}) as r:
+            text = await r.text()
+            try:
+                data = json.loads(text)
+            except Exception:
+                print(f"  ⚠️ fetch_all_tickers non-JSON response: {text[:100]}")
+                return {}
             if data.get("retCode") != 0:
                 print(f"  ⚠️ fetch_all_tickers retCode={data.get('retCode')} msg={data.get('retMsg')}")
                 return {}
